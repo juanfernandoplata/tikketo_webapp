@@ -14,15 +14,17 @@ enum Selectors {
 }
 
 interface EventInfo {
-    eventId: number,
-    eventDate: string,
-    eventTime: string,
-    eventCaracts: any
+    event_id: number,
+    event_date: string,
+    event_time: string,
+    event_caracts: any
 }
 
 function App() {
     // BORRAR EN PRODUCCION
-    const accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJUeXBlIjoiQlVTSU5FU1MiLCJjb21wSWQiOjEsInVzZXJSb2xlIjoiQURNSU4ifQ.wBhhvBsgdWQR2TaoK8mtyIQalLfH_OqMo8qFtEtxKZM"
+    const apiBaseUrl = "https://dfxcckyff2.execute-api.sa-east-1.amazonaws.com/api"
+    const waServUrl = "https://dfxcckyff2.execute-api.sa-east-1.amazonaws.com/wa"
+    const accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VyX3R5cGUiOiJCVVNJTkVTUyIsImNvbXBfaWQiOjEsInVzZXJfcm9sZSI6IkFETUlOIn0.BVaPAUHuvYNGmteuz5NpdqP290t9SRLaBDDrzpZAPbg"
 
     const [ events, setEvents ] = useState<Array<EventInfo>>( [] )
 
@@ -49,15 +51,15 @@ function App() {
 
     useEffect(
         () => {
-            axios.get( `http://127.0.0.1:8000/business/venues/${1}/events/${"movie"}/offering?accessToken=${accessToken}` )
+            axios.get( `${apiBaseUrl}/business/venues/${1}/events/${"movie"}/offering?access_token=${accessToken}` )
             .then( ( res ) => {
                 setEvents( () => ( res.data.events ) )
 
                 let mvs : Array<string> = []
                 for( let i = 0; i < res.data.events.length; i++ ){
                     let event : EventInfo = res.data.events[ i ]
-                    if( !mvs.includes( event.eventCaracts.movie_name ) ){
-                        mvs.push( event.eventCaracts.movie_name )
+                    if( !mvs.includes( event.event_caracts.movie_name ) ){
+                        mvs.push( event.event_caracts.movie_name )
                     }
                 }
 
@@ -79,8 +81,8 @@ function App() {
                     let dts : Array<string> = []
                     for( let i = 0; i < events.length; i++ ){
                         let event : EventInfo = events[ i ]
-                        if( event.eventCaracts.movie_name === movies[ e.target.selectedIndex ] ){
-                            dts.push( event.eventDate )
+                        if( event.event_caracts.movie_name === movies[ e.target.selectedIndex ] ){
+                            dts.push( event.event_date )
                         }
                     }
 
@@ -109,8 +111,8 @@ function App() {
                     let tms : Array<string> = []
                     for( let i = 0; i < events.length; i++ ){
                         let event : EventInfo = events[ i ]
-                        if( event.eventCaracts.movie_name === movies[ selMovie ] ){
-                            tms.push( event.eventTime )
+                        if( event.event_caracts.movie_name === movies[ selMovie ] ){
+                            tms.push( event.event_time )
                         }
                     }
 
@@ -136,18 +138,18 @@ function App() {
                     let eventId : number = -1
                     for( let i = 0; i < events.length; i++ ){
                         let event : EventInfo = events[ i ]
-                        if( event.eventCaracts.movie_name === movies[ selMovie ] &&
-                            event.eventDate === dates[ selDate ] &&
-                            event.eventTime === times[ e.target.selectedIndex ]
+                        if( event.event_caracts.movie_name === movies[ selMovie ] &&
+                            event.event_date === dates[ selDate ] &&
+                            event.event_time === times[ e.target.selectedIndex ]
                         ){
-                            eventId = event.eventId
+                            eventId = event.event_id
                             break
                         }
                     }
 
                     setEventId( eventId )
 
-                    axios.get( `http://127.0.0.1:8000/business/events/${eventId}/availability?accessToken=${accessToken}` )
+                    axios.get( `${apiBaseUrl}/business/events/${eventId}/availability?access_token=${accessToken}` )
                     .then( ( res ) => {
                             setAvail( res.data.availability )
                             setSelTickets( 0 )
@@ -200,12 +202,12 @@ function App() {
 
     const handleClientIdConf = () => {
         axios.post(
-            `http://127.0.0.1:8000/business/events/${eventId}/reserve?accessToken=${accessToken}`,
-            { "eventId": eventId, "clientId": clientId, "numTickets": selTickets },
-            { headers: { "Content-Type": "application/json" } }
+            `${apiBaseUrl}/business/reservations?access_token=${accessToken}`,
+            null,
+            { params: { "event_id": eventId, "client_id": clientId, "num_tickets": selTickets } }
         ).then( ( res ) => {
             if( res.status == 200 ){
-                setReservId( res.data.reservId )
+                setReservId( res.data.reserv_id )
 
                 setDisplayClientIdConf( false )
                 setClientId( "" )
@@ -220,7 +222,7 @@ function App() {
     }
 
     const handleCancelReservation = () => {
-        axios.post( `http://127.0.0.1:8000/business/reservations/${reservId}/cancel?accessToken=${accessToken}` )
+        axios.post( `${apiBaseUrl}/business/reservations/${reservId}/no_confirm?access_token=${accessToken}` )
         .then( ( res ) => {
             if( res.status == 200 ){
                 setSelMovie( 0 )
@@ -240,21 +242,38 @@ function App() {
     }
 
     const handleConfirmReservation = () => {
-        axios.post( `http://127.0.0.1:8000/business/reservations/${reservId}/confirm?accessToken=${accessToken}` )
+        axios.post( `${apiBaseUrl}/business/reservations/${reservId}/confirm?access_token=${accessToken}` )
         .then( ( res ) => {
             if( res.status == 200 ){
-                setSelMovie( 0 )
-                setSelDate( 0 )
-                setSelTime( 0 )
-
-                setAvail( 0 )
-                
-                setEventId( -1 )
-                
-                setSelTickets( 0 )
-                
-                setDisplayClientPhoneConf( false )
-                setClientPhone( "" )
+                axios.post(
+                    `${waServUrl}/reservations/confirm?access_token=${accessToken}`,
+                    {
+                        moviePosterUrl: "https://drive.google.com/thumbnail?id=1dXLl0RBUt4wxB22UybC8gNEKZWmCWoo5&sz=w1000",
+                        movie_name: movies[ selMovie ],
+                        movie_date: dates[ selDate ],
+                        movie_time: times[ selTime ],
+                        num_tickets: selTickets
+                    },
+                    {
+                        headers: { "Content-Type": "application/json" },
+                        params: { event_type: "MOVIE", phone: clientPhone }
+                    }
+                ).then( ( res ) => {
+                    if( res.status == 200 ){
+                        setSelMovie( 0 )
+                        setSelDate( 0 )
+                        setSelTime( 0 )
+        
+                        setAvail( 0 )
+                        
+                        setEventId( -1 )
+                        
+                        setSelTickets( 0 )
+                        
+                        setDisplayClientPhoneConf( false )
+                        setClientPhone( "" )
+                    }
+                })
             }
         })
     }
